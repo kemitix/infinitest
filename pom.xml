@@ -204,6 +204,20 @@
 				<artifactId>maven-enforcer-plugin</artifactId>
 				<executions>
 					<execution>
+						<id>enforce-java-8</id>
+						<phase>validate</phase>
+						<goals>
+							<goal>enforce</goal>
+						</goals>
+						<configuration>
+							<rules>
+								<requireJavaVersion>
+									<version>[1.8,9)</version>
+								</requireJavaVersion>
+							</rules>
+						</configuration>
+					</execution>
+					<execution>
 						<id>enforce-versions-compatibility</id>
 						<phase>verify</phase>
 						<goals>
