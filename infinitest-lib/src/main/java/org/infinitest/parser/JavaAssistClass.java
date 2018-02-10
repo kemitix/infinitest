@@ -37,9 +37,7 @@ import java.util.*;
 import javassist.*;
 import javassist.bytecode.*;
 import javassist.bytecode.annotation.*;
-import junit.framework.*;
 
-import org.junit.Test;
 import org.junit.runner.*;
 
 import com.google.common.base.*;
@@ -270,16 +268,23 @@ public class JavaAssistClass extends AbstractJavaClass {
 
 	private boolean hasJUnitTestMethods(CtClass classReference) {
 		for (CtMethod ctMethod : classReference.getMethods()) {
-			if (isJUnit4TestMethod(ctMethod) || isJUnit3TestMethod(ctMethod)) {
+			if (isJUnit5TestMethod(ctMethod) || isJUnit4TestMethod(ctMethod)) {
 				return true;
 			}
 		}
 		return false;
 	}
 
-	private boolean isJUnit3TestMethod(CtMethod ctMethod) {
-		return ctMethod.getName().startsWith("test") && anySuperclassOf(ctMethod.getDeclaringClass(), isTestCase());
-	}
+    private boolean isJUnit5TestMethod(CtMethod ctMethod) {
+        final List<?> attributes = ctMethod.getMethodInfo2().getAttributes();
+        return attributes.stream()
+                .filter(clazz -> clazz instanceof AnnotationsAttribute)
+                .map(attribute -> (AnnotationsAttribute) attribute)
+                .map(AnnotationsAttribute::getAnnotations)
+                .flatMap(Arrays::stream)
+                .map(Annotation::getTypeName)
+                .anyMatch(org.junit.jupiter.api.Test.class.getName()::equals);
+    }
 
 	private boolean anySuperclassOf(CtClass classReference, Predicate<CtClass> predicate) {
 		CtClass superclass = findSuperclass(classReference);
@@ -290,15 +295,6 @@ public class JavaAssistClass extends AbstractJavaClass {
 			superclass = findSuperclass(superclass);
 		}
 		return false;
-	}
-
-	private Predicate<CtClass> isTestCase() {
-		return new Predicate<CtClass>() {
-			@Override
-			public boolean apply(CtClass input) {
-				return input.getName().equals(TestCase.class.getName());
-			}
-		};
 	}
 
 	private CtClass findSuperclass(CtClass aClassReference) {
@@ -340,7 +336,7 @@ public class JavaAssistClass extends AbstractJavaClass {
 			if (attribute instanceof AnnotationsAttribute) {
 				AnnotationsAttribute annotations = (AnnotationsAttribute) attribute;
 				for (Annotation each : annotations.getAnnotations()) {
-					if (Test.class.getName().equals(each.getTypeName())) {
+					if (org.junit.Test.class.getName().equals(each.getTypeName())) {
 						return true;
 					}
 				}
